@@ -1,0 +1,110 @@
+# Test questions for retrieval on the LOCAL testbed (archipelago-1.6.0-local, sample of prod).
+# Draft written from the items' metadata on 2026-11-06; a librarian should approve or edit before we treat it as
+# the golden set. "relevant" lists the item uuids a good answer must find. Lists may be incomplete: another local
+# item could also be relevant, so treat scores as a comparison between modes, not an absolute grade.
+# style: keyword = shares words with the record; meaning = phrased in different words than the record.
+
+- id: q01
+  question: Letters written by the first president of the A&M College
+  style: meaning
+  relevant: [1068bcfd-2481-418f-8ebc-bb0d0e20f550, a13b7cff-79ed-409b-9dc9-ae7af61a3857, de2dff84-8736-4c64-af01-9e73bfa53fc1]
+- id: q02
+  question: Did the early college president clash with the board of directors?
+  style: meaning
+  relevant: [de2dff84-8736-4c64-af01-9e73bfa53fc1, a13b7cff-79ed-409b-9dc9-ae7af61a3857]
+- id: q03
+  question: old maps of Cuba
+  style: keyword
+  relevant: [4bb167b9-3bd6-400a-a0c6-690beeac8667, e4168dc3-23c4-416d-ba30-10e35f91b54f, 0fcae38a-eef2-429f-86c5-b1a8d440ca9b, 24fe1568-25dc-4bdb-a82b-25e52ebc18bd]
+- id: q04
+  question: maps tracing American army units across France, Belgium and Germany at the end of the war
+  style: meaning
+  relevant: [f7dcb223-ce3f-4c1f-ac5d-12da1f619663, 195162a1-2662-4bcc-a31f-9e0178fcb670, e30bf251-71b5-40a6-a81b-5faf3b9e6b7e, 81b3d22b-4bf8-46ed-8537-89321b36c30d, 263be564-4132-450c-b314-7d75e4c5a586, 39badfed-2ae6-48a9-b707-4f28eb9746a0, 2c4cf8b7-3d8e-402b-af69-d3f597c849bc, f6e5d60b-4293-46d0-899c-1b5526828793, 86541739-d820-4b4b-ac03-8c2ae73ad319, 02758406-f4ec-40ec-8019-90afdf05e3bb]
+- id: q05
+  question: amphibious landings in New Guinea and the Philippines
+  style: keyword
+  relevant: [edf1ed32-bd8a-4122-8a41-8b3f5119f20d]
+- id: q06
+  question: where to park on the Texas A&M campus
+  style: meaning
+  relevant: [8995ca15-d543-4365-b305-5e223a8dbde7, fe4bbd19-b602-4eb0-8209-d02bcdaa873b]
+- id: q07
+  question: aerial photographs of Bryan, College Station and Brazos County
+  style: keyword
+  relevant: [103a528b-6342-410c-b912-397c79167938, 9579f0f6-ff22-4fe7-a4dd-aa5951cabc49, f425a61b-c2d4-45fd-959e-34e574460a59]
+- id: q08
+  question: radio interviews with science fiction writers
+  style: keyword
+  relevant: [6678e2a7-47b2-4914-a092-e9d81f9b0232, 6f7c71bd-141d-493c-ae48-f08cd292c708, 9e96b8c6-230f-42e4-afec-527b79e5c642, ac50f3f5-bf14-45c9-94f0-8da77a27f744, 43769e69-68c9-4378-8e9c-dc6f47ad170e, 6ee95335-c92d-4d3b-8686-bc1278a4ea7c, 72de11b0-f706-44f3-8c30-2870dd0324ce]
+- id: q09
+  question: an author talking about his vampire book
+  style: meaning
+  relevant: [ac50f3f5-bf14-45c9-94f0-8da77a27f744]
+- id: q10
+  question: is it physically possible to go back in time?
+  style: meaning
+  relevant: [86824768-341c-481d-8c4d-3a7a10282af3]
+- id: q11
+  question: the first space shuttle mission and its pilots
+  style: meaning
+  relevant: [3628ec6b-2ff6-4235-99f4-5481f79bc040, 86f39a5d-1763-412c-9e11-0d9278e5c946]
+- id: q12
+  question: video filmed by astronauts aboard Skylab
+  style: keyword
+  relevant: [aa0d7fb0-36c1-4acc-9b6a-7f1ba94fca8b, 2e2a6480-3294-490c-8927-2f02fd51fbb7]
+- id: q13
+  question: course catalogs of the college from the 1800s
+  style: meaning
+  relevant: [8199e55d-895e-4802-ba18-7e92a12f7916, 6696a663-a800-4498-889f-6407e4d315b3, e35a4e2f-f94f-409b-9dfc-047012d9280a]
+- id: q14
+  question: portraits of medical school graduating classes
+  style: meaning
+  relevant: [3d2b3d85-730b-43e6-8eda-96e76f7f64b6, 1494d0fd-5252-40da-842a-53463c1bec12, f66bf429-c902-4d7f-a53b-5aa1c1d1e936]
+- id: q15
+  question: Smokey Bear wildfire prevention radio spots
+  style: keyword
+  relevant: [31592df9-e181-4610-9b5b-07906c645432, 1a6b0bbf-d75b-4d86-83ba-0263f93b52d0, 743b630d-6ced-421b-8ed5-2a1de7caba1e, 07a93ad6-3a2a-46b1-947e-a51ca3597f9d]
+- id: q16
+  question: a radio drama about a park ranger protecting the woods
+  style: meaning
+  relevant: [1f94db32-82ed-4855-b75f-d49159967a79, 7d8b2c3a-98d1-436c-bb87-647440c900de]
+- id: q17
+  question: Black farm families and agricultural extension work in Texas
+  style: meaning
+  relevant: [f6b66167-1a01-42e8-9936-c8d34f805c21, bccb7fab-e597-43fc-a6ee-b7acf551c1d4, 7cb82cdc-2f1b-4a60-bc44-d2e37c748bb6, 2d554cce-5a74-433b-8fd0-4cde71eb3c28, af3e36b6-f5fe-4454-8a44-116318bfb176, 6cc329d3-dbd5-4f11-8cfd-87e9f75bbd03, a664a78c-7e1e-4ad9-b39c-a4c6c82e3e13, 1974098d-9e19-4ab2-8587-6e60cec51469, 480d7e6d-da64-4c5a-82ef-ec7a792f6232, 931e586e-9699-4df3-990b-53d136dd5a9b]
+- id: q18
+  question: milking cows with machines on a dairy
+  style: meaning
+  relevant: [a664a78c-7e1e-4ad9-b39c-a4c6c82e3e13, af3e36b6-f5fe-4454-8a44-116318bfb176, 6cc329d3-dbd5-4f11-8cfd-87e9f75bbd03]
+- id: q19
+  question: an Aggie pilot held captive during the Vietnam War
+  style: meaning
+  relevant: [31a55ee1-05bf-49ff-8793-e7e89b8fa664]
+- id: q20
+  question: interviews with World War II veterans
+  style: keyword
+  relevant: [c86ce420-d7cc-4231-a36d-16b9134fe683, ce91a892-1573-49c6-ad5a-43597206ca3b, 15af0d28-6279-4e46-8427-605cbb1c65b6, 1d63405b-d744-4389-95f0-865292f32682, a462e1ee-04c0-4e10-ac50-5a684597ac76]
+- id: q21
+  question: emergency shelter for refugees after a disaster
+  style: meaning
+  relevant: [2bd36b78-c437-4fb6-ad3a-e2a4ef74d949, d6c0fe23-20b1-4bf0-ab23-035811073fb5, fae47fa1-c057-4fa1-9c4e-c4505ef672e4, eb14f264-f9af-479f-b5e8-b0f23d96431c, 1123891d-9dd6-489e-bd03-2dfaa533e842, 5becd97a-c8be-409e-909e-301bba76320b]
+- id: q22
+  question: rebuilding homes after earthquakes in Central America
+  style: meaning
+  relevant: [fae47fa1-c057-4fa1-9c4e-c4505ef672e4, a0f450c6-6d6a-43f9-a61e-a40308dd9f20, 55882975-a6d2-4f7e-b491-3d3bf524eaab]
+- id: q23
+  question: map of the area burned in the Great Fire of London
+  style: meaning
+  relevant: [fe718acf-bff8-4fe0-8fb5-3e076775ca36]
+- id: q24
+  question: the buried Tyburn stream under London
+  style: keyword
+  relevant: [d02b9ce3-3e22-4d8e-88f8-60dc52d26c76, 5f23a6d9-a859-4f0e-87bd-e9955edaea5d]
+- id: q25
+  question: campus buildings put up during the Depression in the 1930s
+  style: meaning
+  relevant: [32618bdd-7796-4889-9988-f5d1b979038b, 92e37726-2ddd-4d65-98f8-3ff1a79dc2bc, 4a13ee59-d26b-410c-8948-74fc6220b16d, 83fa6751-ec5b-4dd1-8c28-56e5e5b70d33, b67fa095-d939-4228-a647-a7d81bb5f685, 64079fb0-62af-47d1-afa9-0300e9ee28f8, 6e879d6a-0e30-48a7-a8a3-18767c705530, 6f65b4e1-c63f-4622-8739-3c079701879a, 40d9b174-9511-4098-b1c7-2d49f1beb6dd, 4e011114-cc07-43a5-adb3-27d555a94991, 2798a3a1-1ae4-4f80-8c5b-a8e6fa367c3e, 02d79f91-94d4-4f90-8dfb-2d844b220521, 31722bdb-14d6-420b-bded-b397c4d91da1]
+- id: q26
+  question: Spanish colonial map of the missions and forts between Texas and Louisiana
+  style: meaning
+  relevant: [da21a695-35ac-4d83-864c-4fe1adba04d1]

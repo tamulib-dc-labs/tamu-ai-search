@@ -1,0 +1,4 @@
+# Scripts run on Linux (WSL, Grace): keep Unix line endings even when checked out on Windows.
+*.sh text eol=lf
+*.slurm text eol=lf
+*.py text eol=lf

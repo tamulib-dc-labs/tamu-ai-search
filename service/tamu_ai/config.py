@@ -1,30 +1,26 @@
-"""Settings, read from environment variables so the same code runs locally and in the cluster."""
+# Settings for the whole service.
+#
+# Each value can be overridden with an environment variable, so the same code runs on the laptop,
+# on Grace and (later) in the cluster without editing files. Example:
+#   TAMU_AI_EMBED_MODEL=BAAI/bge-m3 TAMU_AI_EMBED_DIM=1024 tamu-ai search "old maps"
 
 import os
-from dataclasses import dataclass
 
+# Where Solr is, and which cores (databases) we use.
+SOLR_URL = os.environ.get("TAMU_AI_SOLR_URL", "http://localhost:8983/solr").rstrip("/")
+SOURCE_CORE = os.environ.get("TAMU_AI_SOURCE_CORE", "drupal")    # Archipelago's own search index (we only read it)
+CHUNK_CORE = os.environ.get("TAMU_AI_CHUNK_CORE", "ai_chunks")   # our core: chunk text + vectors
 
-@dataclass(frozen=True)
-class Settings:
-    solr_url: str = "http://localhost:8983/solr"
-    source_core: str = "drupal"  # Archipelago's Search API core (default_solr_index)
-    chunk_core: str = "ai_chunks"  # our own core for chunks + vectors
-    site_url: str = "https://digitalcollections.library.tamu.edu"
-    embed_model: str = "BAAI/bge-base-en-v1.5"
-    embed_dim: int = 768
-    rerank_model: str = "BAAI/bge-reranker-base"
-    keyword_weight: float = 1.0  # RRF weight of the keyword list relative to the vector list
+# Used to build links back to items: SITE_URL/do/<uuid>
+SITE_URL = os.environ.get("TAMU_AI_SITE_URL", "https://digitalcollections.library.tamu.edu").rstrip("/")
 
-    @classmethod
-    def from_env(cls) -> "Settings":
-        defaults = cls()
-        return cls(
-            solr_url=os.environ.get("TAMU_AI_SOLR_URL", defaults.solr_url).rstrip("/"),
-            source_core=os.environ.get("TAMU_AI_SOURCE_CORE", defaults.source_core),
-            chunk_core=os.environ.get("TAMU_AI_CHUNK_CORE", defaults.chunk_core),
-            site_url=os.environ.get("TAMU_AI_SITE_URL", defaults.site_url).rstrip("/"),
-            embed_model=os.environ.get("TAMU_AI_EMBED_MODEL", defaults.embed_model),
-            embed_dim=int(os.environ.get("TAMU_AI_EMBED_DIM", defaults.embed_dim)),
-            rerank_model=os.environ.get("TAMU_AI_RERANK_MODEL", defaults.rerank_model),
-            keyword_weight=float(os.environ.get("TAMU_AI_KEYWORD_WEIGHT", defaults.keyword_weight)),
-        )
+# The embedding model turns text into a list of numbers (a "vector"); EMBED_DIM is how many numbers.
+# It must match the model: bge-base-en-v1.5 gives 768, bge-m3 and F2LLM-0.6B give 1024.
+EMBED_MODEL = os.environ.get("TAMU_AI_EMBED_MODEL", "BAAI/bge-base-en-v1.5")
+EMBED_DIM = int(os.environ.get("TAMU_AI_EMBED_DIM", "768"))
+
+# The reranker reads the question and a passage together and scores how well they match.
+RERANK_MODEL = os.environ.get("TAMU_AI_RERANK_MODEL", "BAAI/bge-reranker-base")
+
+# How much the keyword results count when merged with the vector results (vector results count 1.0).
+KEYWORD_WEIGHT = float(os.environ.get("TAMU_AI_KEYWORD_WEIGHT", "1.0"))

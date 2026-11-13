@@ -1,47 +1,48 @@
-"""HTTP API. Milestone 1 exposes retrieval only; the answer endpoint (/ai/v1/chat) comes with the LLM."""
+# The web API, built with FastAPI. Run it with:
+#   uvicorn tamu_ai.api:app --port 8100
+# then open http://localhost:8100/docs to try it in the browser.
+#
+# For now it only does search. The AI answer endpoint (/ai/v1/chat) comes later, with the LLM.
 
-from __future__ import annotations
+from typing import Literal
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
-from .config import Settings
-from .embed import Models
-from .retrieve import MODES, Filters, Retriever
+from . import config
+from .search import filter_queries, search
 
-settings = Settings.from_env()
-models = Models(settings)
-retriever = Retriever(settings, models)
-app = FastAPI(title="TAMU AI search", version="0.1.0")
+app = FastAPI(title="TAMU AI search")
 
 
-class SearchFilters(BaseModel):
+# What a search request looks like. FastAPI checks incoming JSON against this
+# and returns a clear error if, say, `limit` is 500 or `q` is empty.
+class SearchRequest(BaseModel):
+    q: str = Field(min_length=1, max_length=500)
+    mode: Literal["keyword", "vector", "hybrid", "hybrid+rerank"] = "hybrid+rerank"
+    limit: int = Field(default=10, ge=1, le=50)
     object_types: list[str] = []
     collections: list[str] = []
     year_from: int | None = None
     year_to: int | None = None
 
 
-class SearchRequest(BaseModel):
-    q: str = Field(min_length=1, max_length=500)
-    filters: SearchFilters = SearchFilters()
-    mode: str = "hybrid+rerank"
-    limit: int = Field(default=10, ge=1, le=50)
-
-
 @app.get("/ai/v1/health")
-def health() -> dict:
+def health():
+    # For monitoring: "is the service up?"
     return {"status": "ok"}
 
 
 @app.post("/ai/v1/search")
-def search(request: SearchRequest) -> dict:
-    if request.mode not in MODES:
-        raise HTTPException(422, f"mode must be one of {MODES}")
-    hits = retriever.search(request.q, Filters(**request.filters.model_dump()), mode=request.mode,
-                            limit=request.limit)
+def search_items(request: SearchRequest):
+    fq = filter_queries(request.object_types, request.collections, request.year_from, request.year_to)
+    docs = search(request.q, request.mode, fq, request.limit)
     return {"results": [{
-        "item_uuid": h.item_uuid, "nid": h.nid, "title": h.title, "url": f"{settings.site_url}/do/{h.item_uuid}",
-        "kind": h.kind, "anchor": h.anchor, "score": round(h.score, 4), "object_types": h.object_types,
-        "collections": h.collections, "snippet": h.text[:400],
-    } for h in hits]}
+        "item_uuid": doc["item_uuid"],
+        "nid": doc["nid"],
+        "title": doc["title"],
+        "url": f"{config.SITE_URL}/do/{doc['item_uuid']}",
+        "object_types": doc.get("object_type", []),
+        "collections": doc.get("collection", []),
+        "snippet": doc["text"][:400],
+    } for doc in docs]}

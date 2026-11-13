@@ -1,96 +1,70 @@
-"""Score retrieval on test questions: did the right items come back, and how high?"""
+# Measure how good search is, using test questions with known right answers.
+#
+# eval/questions.yaml lists questions and, for each one, the items ("relevant") a good search should find.
+# For each question we look at the top 10 items returned and compute three scores between 0 and 1:
+#
+#   recall@10  - what share of the relevant items appear in the top 10?
+#   nDCG@10    - like recall, but finding them near the top counts more than near the bottom.
+#   MRR        - 1 / rank of the first relevant item (1.0 if it's first, 0.5 if second, ...).
+#
+# Each question also has a "style": keyword (uses the same words as the record) or meaning
+# (says it in different words). We report nDCG for each style, because vector search should
+# shine on "meaning" questions.
 
-from __future__ import annotations
-
-import json
 import math
-import time
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Callable
 
 import yaml
 
-from .retrieve import MODES, Retriever
+
+def load_questions(path):
+    with open(path, encoding="utf-8") as f:
+        return yaml.safe_load(f)
 
 
-@dataclass
-class Question:
-    id: str
-    question: str
-    relevant: list[str]  # item uuids a good answer should find
-    note: str = ""
-    style: str = ""  # keyword | meaning
+def recall(ranked, relevant, k=10):
+    return len(set(ranked[:k]) & relevant) / len(relevant)
 
 
-def load_questions(path: Path) -> list[Question]:
-    raw = yaml.safe_load(path.read_text(encoding="utf-8")) or []
-    return [Question(id=str(q["id"]), question=q["question"], relevant=list(q["relevant"]),
-                     note=q.get("note", ""), style=q.get("style", "")) for q in raw]
+def ndcg(ranked, relevant, k=10):
+    # A hit at rank r is worth 1 / log2(r + 1): rank 1 is worth 1.0, rank 2 is 0.63, rank 10 is 0.29.
+    # Divide by the best possible score (all relevant items at the very top) to get 0..1.
+    found = sum(1 / math.log2(rank + 1) for rank, uuid in enumerate(ranked[:k], start=1) if uuid in relevant)
+    best = sum(1 / math.log2(rank + 1) for rank in range(1, min(len(relevant), k) + 1))
+    return found / best
 
 
-def ranked_items(item_uuids: list[str]) -> list[str]:
-    """Several chunks of one item count once, at the rank of its best chunk."""
-    seen: set[str] = set()
-    return [u for u in item_uuids if not (u in seen or seen.add(u))]
-
-
-def recall_at(ranked: list[str], relevant: set[str], k: int) -> float:
-    return len(set(ranked[:k]) & relevant) / len(relevant) if relevant else 0.0
-
-
-def ndcg_at(ranked: list[str], relevant: set[str], k: int) -> float:
-    """1.0 when all relevant items fill the top ranks; less the lower they sit or if any are missing."""
-    dcg = sum(1.0 / math.log2(rank + 1) for rank, u in enumerate(ranked[:k], start=1) if u in relevant)
-    ideal = sum(1.0 / math.log2(rank + 1) for rank in range(1, min(len(relevant), k) + 1))
-    return dcg / ideal if ideal else 0.0
-
-
-def mrr(ranked: list[str], relevant: set[str]) -> float:
-    for rank, u in enumerate(ranked, start=1):
-        if u in relevant:
-            return 1.0 / rank
+def mrr(ranked, relevant, k=10):
+    for rank, uuid in enumerate(ranked[:k], start=1):
+        if uuid in relevant:
+            return 1 / rank
     return 0.0
 
 
-def score(questions: list[Question], rank: Callable[[Question], list[str]], k: int = 10) -> tuple[dict, dict]:
-    """Run `rank` (question -> item uuids, best first) on every question; return (averages, per-question rows)."""
-    totals = {"recall": 0.0, "ndcg": 0.0, "mrr": 0.0, "seconds": 0.0}
-    rows = {}
+def average(values):
+    values = list(values)
+    return sum(values) / len(values) if values else float("nan")
+
+
+def score(questions, rankings, k=10):
+    # rankings: {question id: [item uuids, best first]}.
+    # An item can appear several times (one per chunk); it counts once, at its best position.
+    rows = []
     for q in questions:
-        started = time.monotonic()
-        ranked = ranked_items(rank(q))[:k]
-        elapsed = time.monotonic() - started
-        relevant = set(q.relevant)
-        row = {"recall": recall_at(ranked, relevant, k), "ndcg": ndcg_at(ranked, relevant, k),
-               "mrr": mrr(ranked, relevant), "seconds": elapsed}
-        for key in totals:
-            totals[key] += row[key]
-        rows[q.id] = {**row, "top": ranked[:3]}
-    return {key: value / len(questions) for key, value in totals.items()}, rows
+        ranked = list(dict.fromkeys(rankings[q["id"]]))
+        relevant = set(q["relevant"])
+        rows.append({"style": q.get("style", ""), "recall": recall(ranked, relevant, k),
+                     "ndcg": ndcg(ranked, relevant, k), "mrr": mrr(ranked, relevant, k)})
+
+    result = {name: average(row[name] for row in rows) for name in ("recall", "ndcg", "mrr")}
+    for style in ("keyword", "meaning"):
+        result[f"ndcg_{style}"] = average(row["ndcg"] for row in rows if row["style"] == style)
+    return result
 
 
-def run(retriever: Retriever, questions: list[Question], modes: list[str] | None = None, k: int = 10) -> dict:
-    """Score the live Solr retriever in each mode."""
-    report: dict = {"k": k, "modes": {}, "questions": {}}
-    for mode in modes or list(MODES):
-        averages, rows = score(
-            questions, lambda q: [h.item_uuid for h in retriever.search(q.question, mode=mode, limit=k * 3)], k)
-        report["modes"][mode] = averages
-        for qid, row in rows.items():
-            report["questions"].setdefault(qid, {})[mode] = row
-    return report
-
-
-def print_table(report: dict, label: str = "mode") -> None:
-    width = max([len(label)] + [len(name) for name in report["modes"]]) + 2
-    print(f"{label:<{width}}{'recall@10':>10}{'nDCG@10':>10}{'MRR':>8}{'sec/q':>8}")
-    for name, m in report["modes"].items():
-        print(f"{name:<{width}}{m['recall']:>10.3f}{m['ndcg']:>10.3f}{m['mrr']:>8.3f}{m['seconds']:>8.2f}")
-
-
-def save(report: dict, folder: Path) -> Path:
-    folder.mkdir(parents=True, exist_ok=True)
-    path = folder / f"retrieval-{time.strftime('%Y%m%d-%H%M%S')}.json"
-    path.write_text(json.dumps(report, indent=2), encoding="utf-8")
-    return path
+def print_table(results):
+    # results: {variant name: score(...) dict}. Prints one row per variant.
+    columns = ["recall", "ndcg", "mrr", "ndcg_keyword", "ndcg_meaning"]
+    width = max(len(name) for name in results) + 2
+    print(" " * width + "".join(f"{c:>14}" for c in columns))
+    for name, result in results.items():
+        print(f"{name:<{width}}" + "".join(f"{result[c]:>14.3f}" for c in columns))

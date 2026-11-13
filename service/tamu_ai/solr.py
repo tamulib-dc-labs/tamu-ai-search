@@ -1,58 +1,61 @@
-"""A very small Solr client: just the calls this service needs, over plain HTTP."""
-
-from __future__ import annotations
+# Small helpers for talking to Solr over HTTP.
+#
+# Solr is a search server. Each "core" is like a separate database with its own fields.
+# We send it JSON or form data and get JSON back. That is all this file does.
 
 import json
-from typing import Any, Iterator
 
 import httpx
 
+from . import config
 
-class SolrError(RuntimeError):
-    pass
+http = httpx.Client(timeout=60)
 
 
-class Solr:
-    def __init__(self, base_url: str, core: str, timeout: float = 60.0):
-        self.core_url = f"{base_url}/{core}"
-        self.http = httpx.Client(timeout=timeout)
+def _check(response):
+    # Raise an error that includes Solr's own message (much more useful than just "400 Bad Request").
+    if response.is_error:
+        raise RuntimeError(f"Solr {response.status_code}: {response.text[:300]}")
+    return response.json()
 
-    def _check(self, response: httpx.Response) -> dict[str, Any]:
-        if response.status_code >= 400:
-            raise SolrError(f"{response.status_code} from {response.request.url}: {response.text[:500]}")
-        return response.json()
 
-    def select(self, params: dict[str, Any]) -> dict[str, Any]:
-        # POST keeps long queries (vectors are 768 numbers) out of the URL.
-        return self._check(self.http.post(f"{self.core_url}/select", data={**params, "wt": "json"}))
+def get(core, path):
+    return _check(http.get(f"{config.SOLR_URL}/{core}/{path}"))
 
-    def iter_docs(self, query: str, filters: list[str], fields: str, rows: int = 500) -> Iterator[dict[str, Any]]:
-        """Page through every match with a cursor, which stays fast however deep it goes."""
-        cursor = "*"
-        while True:
-            data = self.select({"q": query, "fq": filters, "fl": fields, "rows": rows,
-                                "sort": "id asc", "cursorMark": cursor})
-            yield from data["response"]["docs"]
-            next_cursor = data["nextCursorMark"]
-            if next_cursor == cursor:
-                return
-            cursor = next_cursor
 
-    def add(self, docs: list[dict[str, Any]]) -> None:
-        self._check(self.http.post(f"{self.core_url}/update", content=json.dumps(docs),
-                                   headers={"Content-Type": "application/json"}))
+def post(core, path, **kwargs):
+    return _check(http.post(f"{config.SOLR_URL}/{core}/{path}", **kwargs))
 
-    def delete_by_query(self, query: str) -> None:
-        self._check(self.http.post(f"{self.core_url}/update", json={"delete": {"query": query}}))
 
-    def commit(self) -> None:
-        self._check(self.http.post(f"{self.core_url}/update", json={"commit": {}}))
+def select(core, params):
+    # Run a search. We POST instead of GET because a vector query is 768+ numbers,
+    # which is too long to put in a URL.
+    return post(core, "select", data=params)
 
-    def schema(self, commands: dict[str, Any]) -> dict[str, Any]:
-        return self._check(self.http.post(f"{self.core_url}/schema", json=commands))
 
-    def schema_fields(self) -> dict[str, Any]:
-        return self._check(self.http.get(f"{self.core_url}/schema"))["schema"]
+def select_all(core, query, filters, fields, rows=500):
+    # Yield every document that matches, page by page.
+    # Solr's "cursorMark" is a bookmark: each page tells us where the next one starts.
+    # When the bookmark stops changing, we have reached the end.
+    cursor = "*"
+    while True:
+        data = select(core, {"q": query, "fq": filters, "fl": fields, "rows": rows,
+                             "sort": "id asc", "cursorMark": cursor})
+        yield from data["response"]["docs"]
+        if data["nextCursorMark"] == cursor:
+            break
+        cursor = data["nextCursorMark"]
 
-    def set_user_property(self, name: str, value: str) -> None:
-        self._check(self.http.post(f"{self.core_url}/config", json={"set-user-property": {name: value}}))
+
+def add(core, docs):
+    # Add (or overwrite, if the id already exists) a list of documents.
+    post(core, "update", content=json.dumps(docs), headers={"Content-Type": "application/json"})
+
+
+def delete_all(core):
+    post(core, "update", json={"delete": {"query": "*:*"}})
+
+
+def commit(core):
+    # Changes only become searchable after a commit.
+    post(core, "update", json={"commit": {}})
